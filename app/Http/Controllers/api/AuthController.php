@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\Validator;
 
 class AuthController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth:api', ['except' => ['login']]);
+        $this->guard = "api";
+    }
+
     public function register(Request $request)
     {
         $validateRequest = Validator::make($request->all(),[
@@ -27,7 +33,7 @@ class AuthController extends Controller
             'password' => bcrypt($request->password)
         ]);
 
-        $token = auth()->attempt($request->only('email', 'password'));
+        $token = auth($this->guard)->attempt($request->only('email', 'password'));
 
         return response()->json([
             'token' => $token,
@@ -39,7 +45,7 @@ class AuthController extends Controller
     {
         $credentials = $request->only('email', 'password');
 
-        if (!$token = auth()->attempt($credentials)) {
+        if (!$token = auth($this->guard)->attempt($credentials)) {
             return response()->json(['error' => 'Invalid credentials'], 401);
         }
 
@@ -48,14 +54,14 @@ class AuthController extends Controller
 
     public function logout()
     {
-        auth()->logout();
+        auth($this->guard)->logout();
 
         return response()->json(['message' => 'Successfully logged out']);
     }
 
     public function refresh()
     {
-        return $this->respondWithToken(auth()->refresh());
+        return $this->respondWithToken(auth($this->guard)->refresh());
     }
 
     /**
@@ -70,7 +76,7 @@ class AuthController extends Controller
         return response()->json([
             'access_token' => $token,
             'token_type' => 'bearer',
-            'expires_in' => auth()->factory()->getTTL() * 60
+            'expires_in' => auth($this->guard)->factory()->getTTL() * 60
         ]);
     }
 }
